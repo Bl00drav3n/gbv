@@ -55,18 +55,18 @@ int main(int argc, char *argv[]) {
 	gbv_io_bgp = 0xE4;
 
 	/* set up test bg map 1 */
-	gbv_u8 * map_data1 = gbv_get_bg_map_data1();
+	gbv_u8 * map_data0 = gbv_get_tile_map0();
 	for (int i = 0; i < GBV_BG_TILES_Y; i++) {
 		for (int j = 0; j < GBV_BG_TILES_X; j++) {
-			map_data1[GBV_BG_TILES_X * i + j] = 0;
+			map_data0[GBV_BG_TILES_X * i + j] = 0;
 		}
 	}
 
 	/* set up test bg map 2 */
-	gbv_u8 * map_data2 = gbv_get_bg_map_data2();
+	gbv_u8 * map_data1 = gbv_get_tile_map1();
 	for (int i = 0; i < GBV_BG_TILES_Y; i++) {
 		for (int j = 0; j < GBV_BG_TILES_X; j++) {
-			map_data2[GBV_BG_TILES_X * i + j] = 1;
+			map_data1[GBV_BG_TILES_X * i + j] = 1;
 		}
 	}
 

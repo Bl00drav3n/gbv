@@ -13,8 +13,8 @@ gbv_io gbv_io_wy   = 0;
 /* internal data pointers */
 static gbv_u8 * gbv_mem;
 static gbv_u8 * gbv_tile_data;
-static gbv_u8 * gbv_bg_map_data1;
-static gbv_u8 * gbv_bg_map_data2;
+static gbv_u8 * gbv_tile_map0;
+static gbv_u8 * gbv_tile_map1;
 static gbv_u8 * gbv_oam_data;
 
 /* internal functions */
@@ -38,11 +38,11 @@ void gbv_get_version(int * maj, int * min, int * patch) {
 }
 
 void gbv_init(void * memory) {
-	gbv_mem          = (gbv_u8*)memory;
-	gbv_tile_data    = gbv_mem + 0x8000;
-	gbv_bg_map_data1 = gbv_mem + 0x9800;
-	gbv_bg_map_data2 = gbv_mem + 0x9C00;
-	gbv_oam_data     = gbv_mem + 0xFE00;
+	gbv_mem       = (gbv_u8*)memory;
+	gbv_tile_data = gbv_mem + 0x8000;
+	gbv_tile_map0 = gbv_mem + 0x9800;
+	gbv_tile_map1 = gbv_mem + 0x9C00;
+	gbv_oam_data  = gbv_mem + 0xFE00;
 }
 
 void gbv_lcdc_set(gbv_lcdc_flag flag) {
@@ -57,12 +57,12 @@ gbv_u8 * ggbv_get_rom_data() {
 	return gbv_mem;
 }
 
-gbv_u8 * gbv_get_bg_map_data1() {
-	return gbv_bg_map_data1;
+gbv_u8 * gbv_get_tile_map0() {
+	return gbv_tile_map0;
 }
 
-gbv_u8 * gbv_get_bg_map_data2() {
-	return gbv_bg_map_data2;
+gbv_u8 * gbv_get_tile_map1() {
+	return gbv_tile_map1;
 }
 
 gbv_u8 * gbv_get_oam_data() {
@@ -79,7 +79,7 @@ gbv_tile * gbv_get_tile(gbv_u8 tile_id) {
 
 void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette) {
 	gbv_u8 * buffer = (gbv_u8*)render_buffer;
-	gbv_u8 * bg_map = (gbv_io_lcdc & GBV_LCDC_BG_MAP_SELECT) ? gbv_bg_map_data2 : gbv_bg_map_data1;
+	gbv_u8 * bg_map = (gbv_io_lcdc & GBV_LCDC_BG_MAP_SELECT) ? gbv_tile_map1 : gbv_tile_map0;
 	gbv_u8 * bg_tile_data = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? gbv_tile_data + 0x800 : gbv_tile_data;
 	if (gbv_io_lcdc & GBV_LCDC_BG_ENABLE) {
 		for (gbv_u8 ty = 0; ty < GBV_BG_TILES_Y; ty++) {
