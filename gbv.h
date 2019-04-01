@@ -1,9 +1,14 @@
 #ifndef __GBV_H__
 #define __GBV_H__
 
+/* in case you're compiling this as a library */
+#ifndef GBV_API
+#define GBV_API
+#endif
+
 #define GBV_VERSION_MAJOR 1
 #define GBV_VERSION_MINOR 0
-#define GBV_VERSION_PATCH 1
+#define GBV_VERSION_PATCH 2
 
 #define GBV_TILE_MEMORY_SIZE   6144
 #define GBV_BG_MAP_MEMORY_SIZE 1024
@@ -58,49 +63,49 @@ typedef struct {
 /*****************************/
 
 /* lcd control */
-extern gbv_io gbv_io_lcdc;
+extern GBV_API gbv_io gbv_io_lcdc;
 
 /* 
   palettes:
     - defined as 4 packed colors at 2 bits per color
     - for objects, 00 means transparent
 */
-extern gbv_io gbv_io_bgp;
-extern gbv_io gbv_io_obp0;
-extern gbv_io gbv_io_obp1;
+extern GBV_API gbv_io gbv_io_bgp;
+extern GBV_API gbv_io gbv_io_obp0;
+extern GBV_API gbv_io gbv_io_obp1;
 
 /* bg scroll registers */
-extern gbv_io gbv_io_scx;
-extern gbv_io gbv_io_scy;
+extern GBV_API gbv_io gbv_io_scx;
+extern GBV_API gbv_io gbv_io_scy;
 
 /* wnd position */
-extern gbv_io gbv_io_wx;
-extern gbv_io gbv_io_wy;
+extern GBV_API gbv_io gbv_io_wx;
+extern GBV_API gbv_io gbv_io_wy;
 
 /*****************************/
 /************ API ************/
 /*****************************/
 
 /* version information */
-void gbv_get_version(int * maj, int * min, int * patch);
+extern GBV_API void gbv_get_version(int * maj, int * min, int * patch);
 
 /* initialize system, provide GBV_HW_MEMORY_SIZE (64k) of memory */
-void gbv_init(void * memory);
+extern GBV_API void gbv_init(void * memory);
 
 /* utility function for lcd control */
-void gbv_lcdc_set(gbv_lcdc_flag flag);
-void gbv_lcdc_reset(gbv_lcdc_flag flag);
+extern GBV_API void gbv_lcdc_set(gbv_lcdc_flag flag);
+extern GBV_API void gbv_lcdc_reset(gbv_lcdc_flag flag);
 
 /* return raw pointers for data specification */
-gbv_u8 * ggbv_get_rom_data();
-gbv_u8 * gbv_get_tile_map0();
-gbv_u8 * gbv_get_tile_map1();
-gbv_u8 * gbv_get_oam_data();
+extern GBV_API gbv_u8 * ggbv_get_rom_data();
+extern GBV_API gbv_u8 * gbv_get_tile_map0();
+extern GBV_API gbv_u8 * gbv_get_tile_map1();
+extern GBV_API gbv_u8 * gbv_get_oam_data();
 
-gbv_u8   * gbv_get_tile_data();
-gbv_tile * gbv_get_tile(gbv_u8 tile_id);
+extern GBV_API gbv_u8   * gbv_get_tile_data();
+extern GBV_API gbv_tile * gbv_get_tile(gbv_u8 tile_id);
 
 /* render all data to target buffer */
-void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette);
+extern GBV_API void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette);
 
 #endif
