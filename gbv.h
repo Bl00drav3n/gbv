@@ -8,7 +8,7 @@
 
 #define GBV_VERSION_MAJOR 1
 #define GBV_VERSION_MINOR 0
-#define GBV_VERSION_PATCH 3
+#define GBV_VERSION_PATCH 4
 
 #define GBV_TILE_MEMORY_SIZE   6144
 #define GBV_BG_MAP_MEMORY_SIZE 1024
@@ -51,15 +51,22 @@ typedef struct {
 } gbv_palette;
 
 typedef enum {
-	GBV_LCDC_BG_ENABLE = 0x01,       /* enable bg display */
-	GBV_LCDC_OBJ_ENABLE = 0x02,      /* enable obj display */
-	GBV_LCDC_OBJ_SIZE_SELECT = 0x04, /* enable 8x16 obj mode */
-	GBV_LCDC_BG_MAP_SELECT = 0x08,   /* bg tile map display select */
-	GBV_LCDC_BG_DATA_SELECT = 0x10,  /* bg & wnd tile data select */
-	GBV_LCDC_WND_ENABLE = 0x20,      /* enable wnd display */
-	GBV_LCDC_WND_MAP_SELECT = 0x40,  /* wnd tile map display select */
-	GBV_LCDC_CTRL = 0x80,            /* enable lcd */
+	GBV_LCDC_BG_ENABLE       = 0x01,  /* enable bg display */
+	GBV_LCDC_OBJ_ENABLE      = 0x02,  /* enable obj display */
+	GBV_LCDC_OBJ_SIZE_SELECT = 0x04,  /* enable 8x16 obj mode */
+	GBV_LCDC_BG_MAP_SELECT   = 0x08,  /* bg tile map display select */
+	GBV_LCDC_BG_DATA_SELECT  = 0x10,  /* bg & wnd tile data select */
+	GBV_LCDC_WND_ENABLE      = 0x20,  /* enable wnd display */
+	GBV_LCDC_WND_MAP_SELECT  = 0x40,  /* wnd tile map display select */
+	GBV_LCDC_CTRL            = 0x80,  /* enable lcd */
 } gbv_lcdc_flag;
+
+typedef enum {
+	GBV_OBJ_ATTR_PALETTE_SELECT  = 0x10, /* specify obj palette */
+	GBV_OBJ_ATTR_FLIP_HORIZONTAL = 0x20, /* flip horizontally */
+	GBV_OBJ_ATTR_FLIP_VERTICAL   = 0x40, /* flip vertically */
+	GBV_OBJ_ATTR_PRIORITY_FLAG   = 0x80, /* display priority flag */
+} gbv_obj_attr;
 
 typedef struct {
 	gbv_u8 data[8][2];
