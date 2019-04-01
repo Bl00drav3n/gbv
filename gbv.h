@@ -8,7 +8,7 @@
 
 #define GBV_VERSION_MAJOR 1
 #define GBV_VERSION_MINOR 0
-#define GBV_VERSION_PATCH 2
+#define GBV_VERSION_PATCH 3
 
 #define GBV_TILE_MEMORY_SIZE   6144
 #define GBV_BG_MAP_MEMORY_SIZE 1024
@@ -23,10 +23,17 @@
 #define GBV_BG_TILES_Y         32
 #define GBV_BG_TILE_COUNT      (GBV_BG_TILES_X * GBV_BG_TILES_Y)
 
+#define GBV_WND_TILES_X        20
+#define GBV_WND_TILES_Y        18
+#define GBV_WND_TILE_COUNT     (GBV_WND_TILES_X * GBV_WND_TILES_Y)
+
 #define GBV_TILE_WIDTH         8
 #define GBV_TILE_HEIGHT        8
 #define GBV_TILE_PITCH         2
 #define GBV_TILE_SIZE          (GBV_TILE_PITCH * GBV_TILE_HEIGHT)
+
+#define GBV_OBJ_COUNT          40
+#define GBV_OBJ_SIZE           (4 * GBV_OBJ_COUNT)
 
 typedef char           gbv_s8;
 typedef short          gbv_s16;
@@ -57,6 +64,13 @@ typedef enum {
 typedef struct {
 	gbv_u8 data[8][2];
 } gbv_tile;
+
+typedef struct {
+	gbv_u8 y;
+	gbv_u8 x;
+	gbv_u8 id;
+	gbv_u8 attr;
+} gbv_obj_char;
 
 /*****************************/
 /*** I/O control registers ***/
@@ -100,10 +114,12 @@ extern GBV_API void gbv_lcdc_reset(gbv_lcdc_flag flag);
 extern GBV_API gbv_u8 * ggbv_get_rom_data();
 extern GBV_API gbv_u8 * gbv_get_tile_map0();
 extern GBV_API gbv_u8 * gbv_get_tile_map1();
-extern GBV_API gbv_u8 * gbv_get_oam_data();
 
 extern GBV_API gbv_u8   * gbv_get_tile_data();
 extern GBV_API gbv_tile * gbv_get_tile(gbv_u8 tile_id);
+
+/* copy GBV_OBJ_SIZE bytes of data to OAM memory */
+extern GBV_API void gbv_transfer_oam_data(gbv_obj_char objs[GBV_OBJ_COUNT]);
 
 /* render all data to target buffer */
 extern GBV_API void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette);

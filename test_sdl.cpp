@@ -48,6 +48,9 @@ int main(int argc, char *argv[]) {
 	unsigned char video_mem[GBV_SCREEN_SIZE] = {};
 	gbv_init(&gbmem);
 
+	/* enable lcd */
+	gbv_lcdc_set(GBV_LCDC_CTRL);
+
 	/* enable bg */
 	gbv_lcdc_set(GBV_LCDC_BG_ENABLE);
 
