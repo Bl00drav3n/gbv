@@ -7,8 +7,8 @@
 #endif
 
 #define GBV_VERSION_MAJOR 1
-#define GBV_VERSION_MINOR 0
-#define GBV_VERSION_PATCH 4
+#define GBV_VERSION_MINOR 1
+#define GBV_VERSION_PATCH 0
 
 #define GBV_TILE_MEMORY_SIZE   6144
 #define GBV_BG_MAP_MEMORY_SIZE 1024
@@ -118,7 +118,7 @@ extern GBV_API void gbv_lcdc_set(gbv_lcdc_flag flag);
 extern GBV_API void gbv_lcdc_reset(gbv_lcdc_flag flag);
 
 /* return raw pointers for data specification */
-extern GBV_API gbv_u8 * ggbv_get_rom_data();
+extern GBV_API gbv_u8 * gbv_get_rom_data();
 extern GBV_API gbv_u8 * gbv_get_tile_map0();
 extern GBV_API gbv_u8 * gbv_get_tile_map1();
 
