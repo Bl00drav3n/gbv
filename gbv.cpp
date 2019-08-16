@@ -165,7 +165,7 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 					for (gbv_u8 y = 0; y < GBV_TILE_HEIGHT; y++) {
 						gbv_u8 * row = tile + GBV_TILE_PITCH * y;
 						for (gbv_u8 x = 0; x < GBV_TILE_WIDTH; x++) {
-							gbv_u16 screen_x = (GBV_TILE_WIDTH * tx + x) + gbv_io_wx - GBV_TILE_WIDTH;
+							gbv_u16 screen_x = (GBV_TILE_WIDTH * tx + x) + gbv_io_wx - 7;
 							gbv_u16 screen_y = (GBV_TILE_HEIGHT * ty + y) + gbv_io_wy;
 							/* clipping */
 							if (screen_x < GBV_SCREEN_WIDTH && screen_y < GBV_SCREEN_HEIGHT) {
