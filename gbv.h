@@ -7,7 +7,7 @@
 #endif
 
 #define GBV_VERSION_MAJOR 1
-#define GBV_VERSION_MINOR 1
+#define GBV_VERSION_MINOR 2
 #define GBV_VERSION_PATCH 0
 
 #define GBV_TILE_MEMORY_SIZE   6144
@@ -51,15 +51,31 @@ typedef struct {
 } gbv_palette;
 
 typedef enum {
-	GBV_LCDC_BG_ENABLE       = 0x01,  /* enable bg display */
-	GBV_LCDC_OBJ_ENABLE      = 0x02,  /* enable obj display */
-	GBV_LCDC_OBJ_SIZE_SELECT = 0x04,  /* enable 8x16 obj mode */
-	GBV_LCDC_BG_MAP_SELECT   = 0x08,  /* bg tile map display select */
-	GBV_LCDC_BG_DATA_SELECT  = 0x10,  /* bg & wnd tile data select */
-	GBV_LCDC_WND_ENABLE      = 0x20,  /* enable wnd display */
-	GBV_LCDC_WND_MAP_SELECT  = 0x40,  /* wnd tile map display select */
-	GBV_LCDC_CTRL            = 0x80,  /* enable lcd */
+	GBV_LCDC_BG_ENABLE       = 0x01, /* enable bg display */
+	GBV_LCDC_OBJ_ENABLE      = 0x02, /* enable obj display */
+	GBV_LCDC_OBJ_SIZE_SELECT = 0x04, /* enable 8x16 obj mode */
+	GBV_LCDC_BG_MAP_SELECT   = 0x08, /* bg tile map display select */
+	GBV_LCDC_BG_DATA_SELECT  = 0x10, /* bg & wnd tile data select */
+	GBV_LCDC_WND_ENABLE      = 0x20, /* enable wnd display */
+	GBV_LCDC_WND_MAP_SELECT  = 0x40, /* wnd tile map display select */
+	GBV_LCDC_CTRL            = 0x80, /* enable lcd */
 } gbv_lcdc_flag;
+
+typedef enum {
+	GBV_STAT_MODE       = 0x03, /* read-only: mode flag (0: h-blank, 1: v-blank, 2: searching oam, 3: transferring data to lcd driver */
+	GBV_STAT_LYC        = 0x04, /* read-only: coincidence flag */
+	GBV_STAT_HBLANK_INT = 0x08, /* mode 0 h-blank interrupt */
+	GBV_STAT_VBLANK_INT = 0x10, /* mode 1 v-blank interrupt */
+	GBV_STAT_OAM_INT    = 0x20, /* mode 2 oam interrupt */
+	GBV_STAT_LYC_INT    = 0x40, /* LYC=LY coincidence interrupt */
+} gbv_stat_flag;
+
+typedef enum {
+	GBV_LCD_MODE_HBLANK   = 0x00,
+	GBV_LCD_MODE_VBLANK   = 0x01,
+	GBV_LCD_MODE_OAM      = 0x02,
+	GBV_LCD_MODE_TRANSFER = 0x03,
+} gbv_lcd_mode;
 
 typedef enum {
 	GBV_OBJ_ATTR_PALETTE_SELECT  = 0x10, /* specify obj palette */
@@ -79,11 +95,14 @@ typedef struct {
 	gbv_u8 attr;
 } gbv_obj_char;
 
+/* user defined callback function used for interrupt handling */
+typedef void (*gbv_int_callback)(void);
+
 /*****************************/
 /*** I/O control registers ***/
 /*****************************/
 
-/* lcd control */
+/* LCD control */
 extern GBV_API gbv_io gbv_io_lcdc;
 
 /* 
@@ -99,6 +118,9 @@ extern GBV_API gbv_io gbv_io_obp1;
 extern GBV_API gbv_io gbv_io_scx;
 extern GBV_API gbv_io gbv_io_scy;
 
+/* LY compare register */
+extern GBV_API gbv_io gbv_io_lyc;
+
 /* wnd position */
 extern GBV_API gbv_io gbv_io_wx;
 extern GBV_API gbv_io gbv_io_wy;
@@ -113,9 +135,13 @@ extern GBV_API void gbv_get_version(int * maj, int * min, int * patch);
 /* initialize system, provide GBV_HW_MEMORY_SIZE (64k) of memory */
 extern GBV_API void gbv_init(void * memory);
 
-/* utility function for lcd control */
+/* utility function for LCD control */
 extern GBV_API void gbv_lcdc_set(gbv_lcdc_flag flag);
 extern GBV_API void gbv_lcdc_reset(gbv_lcdc_flag flag);
+
+/* utility function for LCD stat register */
+extern GBV_API void gbv_stat_set(gbv_stat_flag flag);
+extern GBV_API void gbv_stat_reset(gbv_stat_flag flag);
 
 /* return raw pointers for data specification */
 extern GBV_API gbv_u8 * gbv_get_rom_data();
@@ -124,6 +150,22 @@ extern GBV_API gbv_u8 * gbv_get_tile_map1();
 
 extern GBV_API gbv_u8   * gbv_get_tile_data();
 extern GBV_API gbv_tile * gbv_get_tile(gbv_u8 tile_id);
+
+/* LCD status register */
+extern GBV_API void gbv_stat_set(gbv_stat_flag flag);
+extern GBV_API void gbv_stat_reset(gbv_stat_flag flag);
+
+/* LCD mode */
+extern GBV_API gbv_lcd_mode gbv_stat_mode();
+
+/* LCD Y coincidence */
+extern GBV_API gbv_u8 gbv_stat_lyc();
+
+/* LY register */
+extern GBV_API gbv_io gbv_ly();
+
+/* set user defined callback for LCDC status interrupt */
+extern GBV_API void gbv_lcdc_set_stat_interrupt(gbv_int_callback callback);
 
 /* copy GBV_OBJ_SIZE bytes of data to OAM memory */
 extern GBV_API void gbv_transfer_oam_data(gbv_obj_char objs[GBV_OBJ_COUNT]);

@@ -15,6 +15,7 @@ GBV_API gbv_io gbv_io_obp0 = 0;
 GBV_API gbv_io gbv_io_obp1 = 0;
 GBV_API gbv_io gbv_io_scx  = 0;
 GBV_API gbv_io gbv_io_scy  = 0;
+GBV_API gbv_io gbv_io_lyc  = 0;
 GBV_API gbv_io gbv_io_wx   = 0;
 GBV_API gbv_io gbv_io_wy   = 0;
 
@@ -24,6 +25,15 @@ static gbv_u8 * gbv_tile_data;
 static gbv_u8 * gbv_tile_map0;
 static gbv_u8 * gbv_tile_map1;
 static gbv_obj_char * gbv_oam_data;
+
+static gbv_int_callback gbv_lcdc_int_callback;
+static gbv_io gbv_io_stat;
+static gbv_io gbv_io_ly;
+
+/* internal tracking of triggerable interrupts during LCD operation */
+static struct lcd_stat_trig {
+	gbv_u8 ints[4];
+} global_lcd_stat_trig;
 
 /* internal functions */
 static gbv_u8 get_color(gbv_u8 idx, gbv_u8 pal) {
@@ -61,6 +71,51 @@ static void fill_memory(void * buffer, gbv_u16 size, gbv_u8 value) {
 	}
 }
 
+gbv_u8 * get_tile_from_tilemap(gbv_u8 x, gbv_u8 y, gbv_lcdc_flag map_select) {
+	gbv_u8 *tile_map = (gbv_io_lcdc & map_select) ? gbv_tile_map1 : gbv_tile_map0;
+	gbv_u8 tile_id = tile_map[GBV_BG_TILES_X * y + x];
+
+	tile_id = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? (~tile_id + 1) : tile_id;
+
+	gbv_u8 * tile_data = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? gbv_tile_data + 0x800 : gbv_tile_data;
+	gbv_u8 * tile = tile_data + GBV_TILE_SIZE * tile_id;
+
+	return tile;
+}
+
+void check_for_lcd_interrupts() {
+	if (gbv_lcdc_int_callback) {
+		gbv_lcd_mode mode = gbv_stat_mode();
+		if (global_lcd_stat_trig.ints[mode]) {
+			gbv_u8 trigger = 0;
+			switch (mode) {
+			case GBV_LCD_MODE_HBLANK:
+				trigger = gbv_io_stat & GBV_STAT_HBLANK_INT;
+				break;
+			case GBV_LCD_MODE_VBLANK:
+				trigger = gbv_io_stat & GBV_STAT_VBLANK_INT;
+				break;
+			case GBV_LCD_MODE_OAM:
+				trigger = gbv_io_stat & GBV_STAT_OAM_INT;
+				break;
+			case GBV_LCD_MODE_TRANSFER:
+				trigger = gbv_io_stat & (GBV_STAT_LYC_INT | GBV_STAT_LYC);
+				break;
+			}
+			if (trigger) {
+				global_lcd_stat_trig.ints[mode] = 0;
+				gbv_lcdc_int_callback();
+			}
+		}
+	}
+}
+
+void lcd_change_mode(gbv_lcd_mode mode) {
+	gbv_io_stat = (gbv_io_stat & ~GBV_STAT_MODE) | (mode & GBV_STAT_MODE);
+	global_lcd_stat_trig.ints[mode] = true;
+	check_for_lcd_interrupts();
+}
+
 /* API functions */
 void gbv_get_version(int * maj, int * min, int * patch) {
 	if (maj) {
@@ -90,6 +145,30 @@ void gbv_lcdc_reset(gbv_lcdc_flag flag) {
 	gbv_io_lcdc = gbv_io_lcdc & ~flag;
 }
 
+void gbv_stat_set(gbv_stat_flag flag) {
+	if (flag > GBV_STAT_LYC) {
+		gbv_io_stat = gbv_io_stat | flag;
+	}
+}
+
+void gbv_stat_reset(gbv_stat_flag flag) {
+	if (flag > GBV_STAT_LYC) {
+		gbv_io_stat = gbv_io_stat & ~flag;
+	}
+}
+
+gbv_lcd_mode gbv_stat_mode() {
+	return (gbv_lcd_mode)(gbv_io_stat & GBV_STAT_MODE);
+}
+
+gbv_u8 gbv_stat_lyc() {
+	return gbv_io_stat & GBV_STAT_LYC;
+}
+
+gbv_io gbv_ly() {
+	return gbv_io_ly;
+}
+
 gbv_u8 * gbv_get_rom_data() {
 	return gbv_mem;
 }
@@ -110,24 +189,73 @@ gbv_tile * gbv_get_tile(gbv_u8 tile_id) {
 	return (gbv_tile*)gbv_tile_data + tile_id;
 }
 
+void gbv_lcdc_set_stat_interrupt(gbv_int_callback callback) {
+	gbv_lcdc_int_callback = callback;
+}
+
 void gbv_transfer_oam_data(gbv_obj_char objs[GBV_OBJ_COUNT]) {
 	for (int i = 0; i < GBV_OBJ_COUNT; i++) {
 		gbv_oam_data[i] = objs[i];
 	}
 }
 
-gbv_u8 * get_tile_from_tilemap(gbv_u8 x, gbv_u8 y, gbv_lcdc_flag map_select) {
-	gbv_u8 *tile_map = (gbv_io_lcdc & map_select) ? gbv_tile_map1 : gbv_tile_map0;
-	gbv_u8 tile_id = tile_map[GBV_BG_TILES_X * y + x];
+#if 1
+void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette) {
+	gbv_u8 * buffer = (gbv_u8*)render_buffer;
+	global_lcd_stat_trig = {};
+	if (gbv_io_lcdc & GBV_LCDC_CTRL) {
+		for (gbv_u8 lcd_y = 0; lcd_y < GBV_SCREEN_HEIGHT; lcd_y++) {
+			gbv_io_ly = lcd_y;
+			if (gbv_io_lyc == gbv_io_ly) {
+				gbv_io_stat = gbv_io_stat | GBV_STAT_LYC;
+			}
+			else {
+				gbv_io_stat = (gbv_io_stat & ~GBV_STAT_LYC);
+			}
 
-	tile_id = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? (~tile_id + 1) : tile_id;
+			// TODO: scan OAM
+			lcd_change_mode(GBV_LCD_MODE_OAM);
 
-	gbv_u8 * tile_data = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? gbv_tile_data + 0x800 : gbv_tile_data;
-	gbv_u8 * tile = tile_data + GBV_TILE_SIZE * tile_id;
+			// TODO: render OAM
+			lcd_change_mode(GBV_LCD_MODE_TRANSFER);
 
-	return tile;
+			for (gbv_u8 lcd_x = 0; lcd_x < GBV_SCREEN_WIDTH; lcd_x++) {
+				if (gbv_io_lcdc & GBV_LCDC_WND_ENABLE && lcd_x >= gbv_io_wx - 7 && lcd_y >= gbv_io_wy) {
+					gbv_u8 win_x = lcd_x + 7 - gbv_io_wx;
+					gbv_u8 win_y = lcd_y - gbv_io_wy;
+					gbv_u8 tx = win_x / GBV_TILE_WIDTH;
+					gbv_u8 ty = win_y / GBV_TILE_HEIGHT;
+					gbv_u8 px = win_x % GBV_TILE_WIDTH;
+					gbv_u8 py = win_y % GBV_TILE_HEIGHT;
+					gbv_u8* tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_WND_MAP_SELECT);
+					gbv_u8* row = tile + GBV_TILE_PITCH * py;
+					gbv_u8 color = get_pixel_from_tile_row(row, px, gbv_io_bgp);
+					gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
+					buffer[index] = palette->colors[color];
+				}
+				else if (gbv_io_lcdc & GBV_LCDC_BG_ENABLE) {
+					/* map lcd screen position to tilemap position */
+					gbv_u8 bg_x = lcd_x + gbv_io_scx;
+					gbv_u8 bg_y = lcd_y + gbv_io_scy;
+					gbv_u8 tx = bg_x / GBV_TILE_WIDTH;
+					gbv_u8 ty = bg_y / GBV_TILE_HEIGHT;
+					gbv_u8 px = bg_x % GBV_TILE_WIDTH;
+					gbv_u8 py = bg_y % GBV_TILE_HEIGHT;
+					gbv_u8* tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_BG_MAP_SELECT);
+					gbv_u8* row = tile + GBV_TILE_PITCH * py;
+					gbv_u8 color = get_pixel_from_tile_row(row, px, gbv_io_bgp);
+					gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
+					buffer[index] = palette->colors[color];
+				}
+			}
+			lcd_change_mode(GBV_LCD_MODE_HBLANK);
+		}
+		lcd_change_mode(GBV_LCD_MODE_VBLANK);
+	}
 }
 
+#else
+// old shitty renderer
 void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette) {
 	gbv_u8 * buffer = (gbv_u8*)render_buffer;
 	if (gbv_io_lcdc & GBV_LCDC_CTRL) {
@@ -219,6 +347,7 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 									dst_x = obj->x + src_x - GBV_SPRITE_MARGIN_LEFT;
 									dst_y = y;
 									gbv_u16 offset = dst_y * GBV_SCREEN_WIDTH + dst_x;
+									// TODO: Fix window priority
 									if (!(obj->attr & GBV_OBJ_ATTR_PRIORITY_FLAG) || (obj->attr & GBV_OBJ_ATTR_PRIORITY_FLAG && buffer[offset] == 0x00)) {
 										buffer[offset] = palette->colors[color];
 									}
@@ -237,3 +366,4 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 		}
 	}
 }
+#endif
