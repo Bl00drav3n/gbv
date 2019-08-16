@@ -1,14 +1,14 @@
 # gbv
 Original Gameboy video render library
 
-## What is it?
-GBV emulates the original GB video hardware to draw tiles to the screen. It tries to act as close to what the real hardware would display as possible.
-
 ## Changelog
 ### 1.2.0
 * LCD interrupt support (HBLANK, VBLANK, OAM, TRANSFER)
 * access to LY, LYC and STAT registers
 * sprites not available yet (planned for future release)
+
+## What is it?
+GBV emulates the original GB video hardware to draw tiles to the screen. It tries to act as close to what the real hardware would display as possible.
 
 ### Supported Features:
 * memory mapped registers LCDC (lcd control), SCX and SCY (scroll x and y)
