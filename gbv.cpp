@@ -116,54 +116,66 @@ void gbv_transfer_oam_data(gbv_obj_char objs[GBV_OBJ_COUNT]) {
 	}
 }
 
-void decode_tile_data(gbv_u8 *buffer, gbv_palette *palette, gbv_u8 *tile_map, gbv_u8 *tile_data, gbv_u8 tiles_x, gbv_u8 tiles_y, gbv_u8 offset_x, gbv_u8 offset_y, gbv_io pal, gbv_lcdc_flag data_select) {
-	for (gbv_u8 ty = 0; ty < tiles_y; ty++) {
-		for (gbv_u8 tx = 0; tx < tiles_x; tx++) {
-			gbv_u8 tile_id = tile_map[tiles_x * ty + tx];
-			tile_id = (gbv_io_lcdc & data_select) ? tile_id + 0x80 : tile_id;
-			gbv_u8 * tile = tile_data + GBV_TILE_SIZE * tile_id;
-			for (gbv_u8 y = 0; y < GBV_TILE_HEIGHT; y++) {
-				gbv_u8 * row = tile + GBV_TILE_PITCH * y;
-				for (gbv_u8 x = 0; x < GBV_TILE_WIDTH; x++) {
-					gbv_u8 dest_x = (GBV_TILE_WIDTH * tx + x) - offset_x;
-					gbv_u8 dest_y = (GBV_TILE_HEIGHT * ty + y) - offset_y;
-					/* clipping */
-					if (dest_x < GBV_SCREEN_WIDTH && dest_y < GBV_SCREEN_HEIGHT) {
-						gbv_u8 color = get_pixel_from_tile_row(row, x, pal);
-						gbv_u16 index = dest_y * GBV_SCREEN_WIDTH + dest_x;
-						buffer[index] = palette->colors[color];
-					}
-				}
-			}
-		}
-	}
+gbv_u8 * get_tile_from_tilemap(gbv_u8 x, gbv_u8 y, gbv_lcdc_flag map_select) {
+	gbv_u8 *tile_map = (gbv_io_lcdc & map_select) ? gbv_tile_map1 : gbv_tile_map0;
+	gbv_u8 tile_id = tile_map[GBV_BG_TILES_X * y + x];
+
+	tile_id = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? (~tile_id + 1) : tile_id;
+
+	gbv_u8 * tile_data = (gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? gbv_tile_data + 0x800 : gbv_tile_data;
+	gbv_u8 * tile = tile_data + GBV_TILE_SIZE * tile_id;
+
+	return tile;
 }
 
 void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palette) {
 	gbv_u8 * buffer = (gbv_u8*)render_buffer;
 	if (gbv_io_lcdc & GBV_LCDC_CTRL) {
-		if (gbv_io_lcdc & GBV_LCDC_WND_ENABLE) {
-			/* window enabled */
-			
-		}
 		if (gbv_io_lcdc & GBV_LCDC_BG_ENABLE) {
-			decode_tile_data(
-				buffer, 
-				palette, 
-				(gbv_io_lcdc & GBV_LCDC_BG_MAP_SELECT) ? gbv_tile_map1 : gbv_tile_map0, 
-				(gbv_io_lcdc & GBV_LCDC_BG_DATA_SELECT) ? gbv_tile_data + 0x800 : gbv_tile_data, 
-				GBV_BG_TILES_X, 
-				GBV_BG_TILES_Y, 
-				gbv_io_scx, 
-				gbv_io_scy, 
-				gbv_io_bgp, 
-				GBV_LCDC_BG_DATA_SELECT
-			);
+			for (gbv_u8 ty = 0; ty < GBV_BG_TILES_Y; ty++) {
+				for (gbv_u8 tx = 0; tx < GBV_BG_TILES_X; tx++) {
+					gbv_u8 * tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_BG_MAP_SELECT);
+					for (gbv_u8 y = 0; y < GBV_TILE_HEIGHT; y++) {
+						gbv_u8 * row = tile + GBV_TILE_PITCH * y;
+						for (gbv_u8 x = 0; x < GBV_TILE_WIDTH; x++) {
+							gbv_u8 dest_x = (GBV_TILE_WIDTH * tx + x) - gbv_io_scx;
+							gbv_u8 dest_y = (GBV_TILE_HEIGHT * ty + y) - gbv_io_scy;
+							/* clipping */
+							if (dest_x < GBV_SCREEN_WIDTH && dest_y < GBV_SCREEN_HEIGHT) {
+								gbv_u8 color = get_pixel_from_tile_row(row, x, gbv_io_bgp);
+								gbv_u16 index = dest_y * GBV_SCREEN_WIDTH + dest_x;
+								buffer[index] = palette->colors[color];
+							}
+						}
+					}
+				}
+			}
 		}
 		else {
 			/* background is off, clear screen */
 			for (gbv_u16 i = 0; i < GBV_SCREEN_SIZE; i++) {
 				buffer[i] = 0xFF;
+			}
+		}
+		if (gbv_io_lcdc & GBV_LCDC_WND_ENABLE) {
+			/* window enabled */
+			for (gbv_u8 ty = 0; ty < GBV_BG_TILES_Y; ty++) {
+				for (gbv_u8 tx = 0; tx < GBV_BG_TILES_X; tx++) {
+					gbv_u8 * tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_WND_MAP_SELECT);
+					for (gbv_u8 y = 0; y < GBV_TILE_HEIGHT; y++) {
+						gbv_u8 * row = tile + GBV_TILE_PITCH * y;
+						for (gbv_u8 x = 0; x < GBV_TILE_WIDTH; x++) {
+							gbv_u16 screen_x = (GBV_TILE_WIDTH * tx + x) + gbv_io_wx - GBV_TILE_WIDTH;
+							gbv_u16 screen_y = (GBV_TILE_HEIGHT * ty + y) + gbv_io_wy;
+							/* clipping */
+							if (screen_x < GBV_SCREEN_WIDTH && screen_y < GBV_SCREEN_HEIGHT) {
+								gbv_u8 color = get_pixel_from_tile_row(row, x, gbv_io_bgp);
+								gbv_u16 index = screen_y * GBV_SCREEN_WIDTH + screen_x;
+								buffer[index] = palette->colors[color];
+							}
+						}
+					}
+				}
 			}
 		}
 		if (gbv_io_lcdc & GBV_LCDC_OBJ_ENABLE) {
