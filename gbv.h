@@ -6,10 +6,6 @@
 #define GBV_API
 #endif
 
-#define GBV_VERSION_MAJOR 1
-#define GBV_VERSION_MINOR 2
-#define GBV_VERSION_PATCH 0
-
 #define GBV_TILE_MEMORY_SIZE   6144
 #define GBV_BG_MAP_MEMORY_SIZE 1024
 #define GBV_OAM_MEMORY_SIZE    160

@@ -1,5 +1,9 @@
 #include "gbv.h"
 
+#define GBV_VERSION_MAJOR 1
+#define GBV_VERSION_MINOR 2
+#define GBV_VERSION_PATCH 1
+
 #define OBJ_NULL 0xff
 #define MAX_OBJECTS_PER_SCANLINE 10
 
@@ -99,7 +103,7 @@ void check_for_lcd_interrupts() {
 				trigger = gbv_io_stat & GBV_STAT_OAM_INT;
 				break;
 			case GBV_LCD_MODE_TRANSFER:
-				trigger = gbv_io_stat & (GBV_STAT_LYC_INT | GBV_STAT_LYC);
+				trigger = (gbv_io_stat & GBV_STAT_LYC_INT) && (gbv_io_stat & GBV_STAT_LYC);
 				break;
 			}
 			if (trigger) {
