@@ -643,16 +643,16 @@ int main(int argc, char *argv[]) {
 			case SDL_KEYDOWN:
 				switch (evt.key.keysym.sym) {
 				case SDLK_UP:
-					gbv_io_scy--;
+					sprite_y--;
 					break;
 				case SDLK_DOWN:
-					gbv_io_scy++;
+					sprite_y++;
 					break;
 				case SDLK_RIGHT:
-					gbv_io_scx++;
+					sprite_x++;
 					break;
 				case SDLK_LEFT:
-					gbv_io_scx--;
+					sprite_x--;
 					break;
 				case SDLK_RETURN:
 				case SDLK_RETURN2:

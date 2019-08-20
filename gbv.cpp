@@ -219,8 +219,18 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 
 			// TODO: scan OAM
 			lcd_change_mode(GBV_LCD_MODE_OAM);
+			gbv_u8 obj_count = 0;
+			gbv_u8 objs[MAX_OBJECTS_PER_SCANLINE];
+			for (gbv_u8 idx = 0; idx < GBV_OBJ_COUNT; idx++) {
+				gbv_obj_char *obj = gbv_oam_data + idx;
+				if (obj->y <= lcd_y + GBV_SPRITE_MARGIN_TOP  && obj->y + 8 > lcd_y + GBV_SPRITE_MARGIN_TOP) {
+					if (obj_count < MAX_OBJECTS_PER_SCANLINE) {
+						objs[obj_count++] = idx;
+					}
+				}
+			}
 
-			// TODO: render OAM
+			// TODO: render tiles
 			lcd_change_mode(GBV_LCD_MODE_TRANSFER);
 
 			for (gbv_u8 lcd_x = 0; lcd_x < GBV_SCREEN_WIDTH; lcd_x++) {
@@ -250,6 +260,23 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 					gbv_u8 color = get_pixel_from_tile_row(row, px, gbv_io_bgp);
 					gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
 					buffer[index] = palette->colors[color];
+				}
+				if (gbv_io_lcdc & GBV_LCDC_OBJ_ENABLE) {
+					for (gbv_u8 idx = 0; idx < obj_count; idx++) {
+						gbv_obj_char *obj = gbv_oam_data + idx;
+						if (obj->x <= lcd_x + GBV_SPRITE_MARGIN_LEFT && obj->x + 8 > lcd_x + GBV_SPRITE_MARGIN_LEFT) {
+							gbv_u8 px = lcd_x + GBV_SPRITE_MARGIN_LEFT - obj->x;
+							gbv_u8 py = lcd_y + GBV_SPRITE_MARGIN_TOP - obj->y;
+							gbv_u8 *tile = gbv_tile_data + GBV_TILE_SIZE * obj->id;
+							gbv_u8 *row = tile + GBV_TILE_PITCH * py;
+							gbv_u8 pal_idx = get_pal_idx_from_tile_row(row, px);
+							if (pal_idx) {
+								gbv_u8 color = get_color(pal_idx, (obj->attr & GBV_OBJ_ATTR_PALETTE_SELECT) ? gbv_io_obp1 : gbv_io_obp0);
+								gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
+								buffer[index] = palette->colors[color];
+							}
+						}
+					}
 				}
 			}
 			lcd_change_mode(GBV_LCD_MODE_HBLANK);
