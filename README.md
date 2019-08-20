@@ -8,6 +8,8 @@ Original Gameboy video render library
 * sprites not available yet (planned for future release)
 ### 1.2.1
 * Fix LYC interrupt bug
+### 1.3.0
+* Re-implemented sprites
 
 ## What is it?
 GBV emulates the original GB video hardware to draw tiles to the screen. It tries to act as close to what the real hardware would display as possible.
