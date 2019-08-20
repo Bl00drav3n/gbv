@@ -269,6 +269,12 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 						if (obj->x <= lcd_x + GBV_SPRITE_MARGIN_LEFT && obj->x + 8 > lcd_x + GBV_SPRITE_MARGIN_LEFT) {
 							gbv_u8 px = lcd_x + GBV_SPRITE_MARGIN_LEFT - obj->x;
 							gbv_u8 py = lcd_y + GBV_SPRITE_MARGIN_TOP - obj->y;
+							if (obj->attr & GBV_OBJ_ATTR_FLIP_VERTICAL) {
+								px = GBV_TILE_WIDTH - 1 - px;
+							}
+							if (obj->attr & GBV_OBJ_ATTR_FLIP_HORIZONTAL) {
+								py = GBV_TILE_HEIGHT - 1 - py;
+							}
 							gbv_u8 *tile = gbv_tile_data + GBV_TILE_SIZE * obj->id;
 							gbv_u8 *row = tile + GBV_TILE_PITCH * py;
 							gbv_u8 new_pal_idx = get_pal_idx_from_tile_row(row, px);

@@ -395,11 +395,11 @@ gbv_u8 glyph_data[] =
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-const gbv_u8 test_tile0 = 19;
-const gbv_u8 test_tile1 = 20;
-const gbv_u8 test_tile2 = 21;
-const gbv_u8 test_tile3 = 22;
-const gbv_u8 glyph_id_start = 23;
+const gbv_u8 test_tile0 = 20;
+const gbv_u8 test_tile1 = 21;
+const gbv_u8 test_tile2 = 22;
+const gbv_u8 test_tile3 = 23;
+const gbv_u8 glyph_id_start = 24;
 
 gbv_u8 get_glyph_id(char c) {
 	return glyph_id_start + c;
@@ -471,6 +471,13 @@ void lcdc_stat_callback() {
 	case GBV_LCD_MODE_VBLANK:
 		gbv_lcdc_set(GBV_LCDC_WND_ENABLE);
 	}
+}
+
+void sprite_params(gbv_obj_char *obj, gbv_u8 id, gbv_u8 flags, gbv_u8 x, gbv_u8 y) {
+	obj->id = id;
+	obj->attr = flags;
+	obj->x = x;
+	obj->y = y;
 }
 
 int main(int argc, char *argv[]) {
@@ -600,12 +607,28 @@ int main(int argc, char *argv[]) {
 	tile18->data[7][0] = 0xAA;
 	tile18->data[7][1] = 0xAA;
 
+	unsigned char fliptest[] =
+	{
+		0xF0,0xF0,0xB0,0xD0,0xF0,0x90,0xFC,0xFC,
+		0x10,0x10,0x10,0x10,0x00,0x00,0x00,0x00
+	};
+	gbv_tile * tile19 = gbv_get_tile(19);
+	memcpy(tile19, fliptest, sizeof(fliptest));
+
 	/* set up sprites */
 	gbv_obj_char sprites[GBV_OBJ_COUNT] = {};
 	sprites[0].id = 17;
 	sprites[1].id = 18;
 	sprites[2].id = 18;
 	sprites[3].id = 18;
+
+	gbv_u8 testflags = GBV_OBJ_ATTR_PALETTE_SELECT;
+	gbv_u8 test_x = 40;
+	gbv_u8 test_y = 40;
+	sprite_params(sprites + 4, 19, testflags, test_x, test_y);
+	sprite_params(sprites + 5, 19, testflags | GBV_OBJ_ATTR_FLIP_VERTICAL, test_x + 8, test_y);
+	sprite_params(sprites + 6, 19, testflags | GBV_OBJ_ATTR_FLIP_HORIZONTAL, test_x, test_y + 8);
+	sprite_params(sprites + 7, 19, testflags | GBV_OBJ_ATTR_FLIP_VERTICAL | GBV_OBJ_ATTR_FLIP_HORIZONTAL, test_x + 8, test_y + 8);
 
 	gbv_io_wx = 7;
 	gbv_io_wy = 0;
