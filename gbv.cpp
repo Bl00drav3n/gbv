@@ -1,8 +1,8 @@
 #include "gbv.h"
 
 #define GBV_VERSION_MAJOR 1
-#define GBV_VERSION_MINOR 2
-#define GBV_VERSION_PATCH 1
+#define GBV_VERSION_MINOR 3
+#define GBV_VERSION_PATCH 0
 
 #define OBJ_NULL 0xff
 #define MAX_OBJECTS_PER_SCANLINE 10
@@ -234,6 +234,8 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 			lcd_change_mode(GBV_LCD_MODE_TRANSFER);
 
 			for (gbv_u8 lcd_x = 0; lcd_x < GBV_SCREEN_WIDTH; lcd_x++) {
+				gbv_u8 pal_idx = 0;
+				gbv_u8 pal = 0;
 				if (gbv_io_lcdc & GBV_LCDC_WND_ENABLE && lcd_x >= gbv_io_wx - 7 && lcd_y >= gbv_io_wy) {
 					gbv_u8 win_x = lcd_x + 7 - gbv_io_wx;
 					gbv_u8 win_y = lcd_y - gbv_io_wy;
@@ -243,9 +245,8 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 					gbv_u8 py = win_y % GBV_TILE_HEIGHT;
 					gbv_u8* tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_WND_MAP_SELECT);
 					gbv_u8* row = tile + GBV_TILE_PITCH * py;
-					gbv_u8 color = get_pixel_from_tile_row(row, px, gbv_io_bgp);
-					gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
-					buffer[index] = palette->colors[color];
+					pal_idx = get_pal_idx_from_tile_row(row, px);
+					pal = gbv_io_bgp;
 				}
 				else if (gbv_io_lcdc & GBV_LCDC_BG_ENABLE) {
 					/* map lcd screen position to tilemap position */
@@ -257,27 +258,31 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 					gbv_u8 py = bg_y % GBV_TILE_HEIGHT;
 					gbv_u8* tile = get_tile_from_tilemap(tx, ty, GBV_LCDC_BG_MAP_SELECT);
 					gbv_u8* row = tile + GBV_TILE_PITCH * py;
-					gbv_u8 color = get_pixel_from_tile_row(row, px, gbv_io_bgp);
-					gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
-					buffer[index] = palette->colors[color];
+					pal_idx = get_pal_idx_from_tile_row(row, px);
+					pal = gbv_io_bgp;
 				}
 				if (gbv_io_lcdc & GBV_LCDC_OBJ_ENABLE) {
+					// TODO: implement flip H/V
+					// TODO: properly support order of sprites with coinciding x values
 					for (gbv_u8 idx = 0; idx < obj_count; idx++) {
-						gbv_obj_char *obj = gbv_oam_data + objs[idx];
+						gbv_obj_char *obj = gbv_oam_data + objs[obj_count - idx - 1];
 						if (obj->x <= lcd_x + GBV_SPRITE_MARGIN_LEFT && obj->x + 8 > lcd_x + GBV_SPRITE_MARGIN_LEFT) {
 							gbv_u8 px = lcd_x + GBV_SPRITE_MARGIN_LEFT - obj->x;
 							gbv_u8 py = lcd_y + GBV_SPRITE_MARGIN_TOP - obj->y;
 							gbv_u8 *tile = gbv_tile_data + GBV_TILE_SIZE * obj->id;
 							gbv_u8 *row = tile + GBV_TILE_PITCH * py;
-							gbv_u8 pal_idx = get_pal_idx_from_tile_row(row, px);
-							if (pal_idx) {
-								gbv_u8 color = get_color(pal_idx, (obj->attr & GBV_OBJ_ATTR_PALETTE_SELECT) ? gbv_io_obp1 : gbv_io_obp0);
-								gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
-								buffer[index] = palette->colors[color];
+							gbv_u8 new_pal_idx = get_pal_idx_from_tile_row(row, px);
+							if ((obj->attr & GBV_OBJ_ATTR_PRIORITY_FLAG) == 0 || (!pal_idx && (obj->attr & GBV_OBJ_ATTR_PRIORITY_FLAG))) {
+								if (new_pal_idx) {
+									pal = (obj->attr & GBV_OBJ_ATTR_PALETTE_SELECT) ? gbv_io_obp1 : gbv_io_obp0;
+									pal_idx = new_pal_idx;
+								}
 							}
 						}
 					}
 				}
+				gbv_u16 index = lcd_y * GBV_SCREEN_WIDTH + lcd_x;
+				buffer[index] = palette->colors[get_color(pal_idx, pal)];
 			}
 			lcd_change_mode(GBV_LCD_MODE_HBLANK);
 		}

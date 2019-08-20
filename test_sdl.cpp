@@ -527,6 +527,7 @@ int main(int argc, char *argv[]) {
 
 	/* set up sprite palette */
 	gbv_io_obp0 = 0xD0;
+	gbv_io_obp1 = 0xE4;
 
 	/* set up test bg map 1 */
 
@@ -603,6 +604,8 @@ int main(int argc, char *argv[]) {
 	gbv_obj_char sprites[GBV_OBJ_COUNT] = {};
 	sprites[0].id = 17;
 	sprites[1].id = 18;
+	sprites[2].id = 18;
+	sprites[3].id = 18;
 
 	gbv_io_wx = 7;
 	gbv_io_wy = 0;
@@ -665,9 +668,19 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		gbv_u8 flags = GBV_OBJ_ATTR_PALETTE_SELECT | GBV_OBJ_ATTR_PRIORITY_FLAG;
 		gbv_io_obp0 += 6;
 		sprites[0].x = sprite_x;
 		sprites[0].y = sprite_y;
+		sprites[1].x = sprite_x + 8;
+		sprites[1].y = sprite_y;
+		sprites[1].attr = flags;
+		sprites[2].x = sprite_x;
+		sprites[2].y = sprite_y + 8;
+		sprites[2].attr = flags;
+		sprites[3].x = sprite_x + 8;
+		sprites[3].y = sprite_y + 8;
+		sprites[3].attr = flags;
 		gbv_transfer_oam_data(sprites);
 
 		/* render gbv state to 8bit per pixel buffer */
