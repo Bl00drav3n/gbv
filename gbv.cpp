@@ -263,7 +263,7 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 				}
 				if (gbv_io_lcdc & GBV_LCDC_OBJ_ENABLE) {
 					for (gbv_u8 idx = 0; idx < obj_count; idx++) {
-						gbv_obj_char *obj = gbv_oam_data + idx;
+						gbv_obj_char *obj = gbv_oam_data + objs[idx];
 						if (obj->x <= lcd_x + GBV_SPRITE_MARGIN_LEFT && obj->x + 8 > lcd_x + GBV_SPRITE_MARGIN_LEFT) {
 							gbv_u8 px = lcd_x + GBV_SPRITE_MARGIN_LEFT - obj->x;
 							gbv_u8 py = lcd_y + GBV_SPRITE_MARGIN_TOP - obj->y;
