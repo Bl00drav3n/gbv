@@ -2,7 +2,7 @@
 
 #define GBV_VERSION_MAJOR 1
 #define GBV_VERSION_MINOR 3
-#define GBV_VERSION_PATCH 0
+#define GBV_VERSION_PATCH 1
 
 #define OBJ_NULL 0xff
 #define MAX_OBJECTS_PER_SCANLINE 10
@@ -217,22 +217,32 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 				gbv_io_stat = (gbv_io_stat & ~GBV_STAT_LYC);
 			}
 
-			// TODO: scan OAM
 			lcd_change_mode(GBV_LCD_MODE_OAM);
 			gbv_u8 obj_count = 0;
 			gbv_u8 objs[MAX_OBJECTS_PER_SCANLINE];
-			for (gbv_u8 idx = 0; idx < GBV_OBJ_COUNT; idx++) {
-				gbv_obj_char *obj = gbv_oam_data + idx;
-				if (obj->y <= lcd_y + GBV_SPRITE_MARGIN_TOP  && obj->y + 8 > lcd_y + GBV_SPRITE_MARGIN_TOP) {
-					if (obj_count < MAX_OBJECTS_PER_SCANLINE) {
-						objs[obj_count++] = idx;
+			if (gbv_io_lcdc & GBV_LCDC_OBJ_SIZE_SELECT) {
+				// TODO: figure out if sprite attributes from obj[0] or obj[1] is used in case of hit on obj[1]
+				for (gbv_u8 idx = 0; idx < (GBV_OBJ_COUNT >> 1); idx++) {
+					gbv_obj_char* obj = gbv_oam_data + 2 * idx;
+					if (obj->y <= lcd_y + GBV_SPRITE_MARGIN_TOP && obj->y + 2 * GBV_TILE_HEIGHT > lcd_y + GBV_SPRITE_MARGIN_TOP) {
+						if (obj_count < MAX_OBJECTS_PER_SCANLINE) {
+							objs[obj_count++] = (lcd_y - obj->y < GBV_TILE_HEIGHT) ? 2 * idx : 2 * idx + 1;
+						}
+					}
+				}
+			}
+			else {
+				for (gbv_u8 idx = 0; idx < GBV_OBJ_COUNT; idx++) {
+					gbv_obj_char* obj = gbv_oam_data + idx;
+					if (obj->y <= lcd_y + GBV_SPRITE_MARGIN_TOP && obj->y + GBV_TILE_HEIGHT > lcd_y + GBV_SPRITE_MARGIN_TOP) {
+						if (obj_count < MAX_OBJECTS_PER_SCANLINE) {
+							objs[obj_count++] = idx;
+						}
 					}
 				}
 			}
 
-			// TODO: render tiles
 			lcd_change_mode(GBV_LCD_MODE_TRANSFER);
-
 			for (gbv_u8 lcd_x = 0; lcd_x < GBV_SCREEN_WIDTH; lcd_x++) {
 				gbv_u8 pal_idx = 0;
 				gbv_u8 pal = 0;
@@ -262,7 +272,6 @@ void gbv_render(void * render_buffer, gbv_render_mode mode, gbv_palette * palett
 					pal = gbv_io_bgp;
 				}
 				if (gbv_io_lcdc & GBV_LCDC_OBJ_ENABLE) {
-					// TODO: implement flip H/V
 					// TODO: properly support order of sprites with coinciding x values
 					for (gbv_u8 idx = 0; idx < obj_count; idx++) {
 						gbv_obj_char *obj = gbv_oam_data + objs[obj_count - idx - 1];
